@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -87,6 +88,61 @@ func (c *Client) GetItem(id int) (*Item, error) {
 	return item, nil
 }
 
+func (c *Client) GetItems(ids []int, batchSize int) ([]*Item, error) {
+	var wg sync.WaitGroup
+	itemCh := make(chan *Item, batchSize)
+	errCh := make(chan error, batchSize)
+	sem := make(chan struct{}, batchSize)
+
+	for _, id := range ids {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			item, err := c.GetItem(id)
+			if err != nil {
+				errCh <- err
+				<-sem
+				return
+			}
+			itemCh <- item
+			<-sem
+		}(id)
+	}
+
+	go func() {
+		wg.Wait()
+		close(itemCh)
+		close(errCh)
+	}()
+
+	var items []*Item
+	var err error
+
+	for {
+		select {
+		case item, ok := <-itemCh:
+			if !ok {
+				itemCh = nil
+			} else {
+				items = append(items, item)
+			}
+		case e, ok := <-errCh:
+			if !ok {
+				errCh = nil
+			} else if err == nil {
+				err = e
+			}
+		}
+
+		if itemCh == nil && errCh == nil {
+			break
+		}
+	}
+
+	return items, err
+}
+
 type User struct {
 	About     string
 	Created   time.Time
@@ -129,4 +185,48 @@ func (c *Client) GetUser(username string) (*User, error) {
 	}
 
 	return user, nil
+}
+
+func (c *Client) GetTopStoryIDs() ([]int, error) {
+	return c.getStoryIDs("topstories")
+}
+
+func (c *Client) GetNewStoryIDs() ([]int, error) {
+	return c.getStoryIDs("newstories")
+}
+
+func (c *Client) GetBestStoryIDs() ([]int, error) {
+	return c.getStoryIDs("beststories")
+}
+
+func (c *Client) GetAskStoryIDs() ([]int, error) {
+	return c.getStoryIDs("askstories")
+}
+
+func (c *Client) GetShowStoryIDs() ([]int, error) {
+	return c.getStoryIDs("showstories")
+}
+
+func (c *Client) GetJobStoryIDs() ([]int, error) {
+	return c.getStoryIDs("jobstories")
+}
+
+func (c *Client) getStoryIDs(storyType string) ([]int, error) {
+	url := fmt.Sprintf("%s/%s.json", c.baseURL, storyType)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received non-200 response status: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var itemIDs []int
+	if err := json.NewDecoder(resp.Body).Decode(&itemIDs); err != nil {
+		return nil, fmt.Errorf("error decoding JSON response: %v", err)
+	}
+
+	return itemIDs, nil
 }

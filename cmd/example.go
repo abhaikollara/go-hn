@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/abhaikollara/hn"
 	"log"
 )
@@ -18,4 +19,13 @@ func main() {
 		log.Fatal("error: ", err)
 	}
 	log.Printf("%#v", user)
+
+	items, err := c.GetTopStoryIDs()
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+	stories, _ := c.GetItems(items[:10], 100)
+	for _, s := range stories {
+		fmt.Println(s)
+	}
 }
