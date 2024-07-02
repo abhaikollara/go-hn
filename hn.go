@@ -86,3 +86,47 @@ func (c *Client) GetItem(id int) (*Item, error) {
 
 	return item, nil
 }
+
+type User struct {
+	About     string
+	Created   time.Time
+	ID        string
+	Karma     int
+	Submitted []int
+}
+
+type userResponse struct {
+	About     string `json:"about"`
+	Created   int64  `json:"created"`
+	ID        string `json:"id"`
+	Karma     int    `json:"karma"`
+	Submitted []int  `json:"submitted"`
+}
+
+func (c *Client) GetUser(username string) (*User, error) {
+	url := fmt.Sprintf("%s/user/%s.json", c.baseURL, username)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received non-200 response status: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var userResp userResponse
+	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
+		return nil, fmt.Errorf("error decoding JSON response: %v", err)
+	}
+
+	user := &User{
+		About:     userResp.About,
+		Created:   time.Unix(userResp.Created, 0),
+		ID:        userResp.ID,
+		Karma:     userResp.Karma,
+		Submitted: userResp.Submitted,
+	}
+
+	return user, nil
+}

@@ -12,4 +12,10 @@ func main() {
 		log.Fatal("error: ", err)
 	}
 	log.Printf("%#v", item)
+
+	user, err := c.GetUser("TheThirdTuring")
+	if err != nil {
+		log.Fatal("error: ", err)
+	}
+	log.Printf("%#v", user)
 }
