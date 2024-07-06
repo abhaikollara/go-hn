@@ -10,14 +10,17 @@ import (
 
 const BaseUrlv0 = "https://hacker-news.firebaseio.com/v0"
 
+// Client represents a Hacker News API client.
 type Client struct {
 	baseURL string
 }
 
+// New creates a new Client with the default base URL.
 func New() Client {
 	return Client{baseURL: BaseUrlv0}
 }
 
+// Item represents a Hacker News item.
 type Item struct {
 	ID          int
 	By          string
@@ -35,6 +38,7 @@ type Item struct {
 	Poll   int
 }
 
+// itemResponse represents the JSON structure of an item from the Hacker News API.
 type itemResponse struct {
 	ID          int    `json:"id"`
 	By          string `json:"by"`
@@ -52,6 +56,7 @@ type itemResponse struct {
 	Poll   int    `json:"poll"`  // only in "type": "pollopt"
 }
 
+// GetItem fetches a single item from Hacker News by ID.
 func (c *Client) GetItem(id int) (*Item, error) {
 	url := fmt.Sprintf("%s/item/%d.json", c.baseURL, id)
 	resp, err := http.Get(url)
@@ -88,6 +93,7 @@ func (c *Client) GetItem(id int) (*Item, error) {
 	return item, nil
 }
 
+// GetItems fetches multiple items concurrently from Hacker News by their IDs.
 func (c *Client) GetItems(ids []int, batchSize int) ([]*Item, error) {
 	var wg sync.WaitGroup
 	itemCh := make(chan *Item, batchSize)
@@ -143,6 +149,7 @@ func (c *Client) GetItems(ids []int, batchSize int) ([]*Item, error) {
 	return items, err
 }
 
+// User represents a Hacker News user.
 type User struct {
 	About     string
 	Created   time.Time
@@ -151,6 +158,7 @@ type User struct {
 	Submitted []int
 }
 
+// userResponse represents the JSON structure of a user from the Hacker News API.
 type userResponse struct {
 	About     string `json:"about"`
 	Created   int64  `json:"created"`
@@ -159,6 +167,7 @@ type userResponse struct {
 	Submitted []int  `json:"submitted"`
 }
 
+// GetUser fetches a Hacker News user by their username.
 func (c *Client) GetUser(username string) (*User, error) {
 	url := fmt.Sprintf("%s/user/%s.json", c.baseURL, username)
 	resp, err := http.Get(url)
@@ -187,30 +196,37 @@ func (c *Client) GetUser(username string) (*User, error) {
 	return user, nil
 }
 
+// GetTopStoryIDs fetches the IDs of the top stories from Hacker News.
 func (c *Client) GetTopStoryIDs() ([]int, error) {
 	return c.getStoryIDs("topstories")
 }
 
+// GetNewStoryIDs fetches the IDs of the new stories from Hacker News.
 func (c *Client) GetNewStoryIDs() ([]int, error) {
 	return c.getStoryIDs("newstories")
 }
 
+// GetBestStoryIDs fetches the IDs of the best stories from Hacker News.
 func (c *Client) GetBestStoryIDs() ([]int, error) {
 	return c.getStoryIDs("beststories")
 }
 
+// GetAskStoryIDs fetches the IDs of the ask stories from Hacker News.
 func (c *Client) GetAskStoryIDs() ([]int, error) {
 	return c.getStoryIDs("askstories")
 }
 
+// GetShowStoryIDs fetches the IDs of the show stories from Hacker News.
 func (c *Client) GetShowStoryIDs() ([]int, error) {
 	return c.getStoryIDs("showstories")
 }
 
+// GetJobStoryIDs fetches the IDs of the job stories from Hacker News.
 func (c *Client) GetJobStoryIDs() ([]int, error) {
 	return c.getStoryIDs("jobstories")
 }
 
+// getStoryIDs fetches the IDs of stories of a given type from Hacker News.
 func (c *Client) getStoryIDs(storyType string) ([]int, error) {
 	url := fmt.Sprintf("%s/%s.json", c.baseURL, storyType)
 	resp, err := http.Get(url)
