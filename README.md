@@ -16,3 +16,6 @@ To use this package, you'll need to have [Go](https://golang.org/doc/install) in
 ```bash
 go get -u github.com/abhaikollara/hn
 ```
+
+## Usage
+[View example](examples/example.go)
