@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal("error: ", err)
 	}
-	stories, _ := c.GetItems(items[:10], 100)
+	stories, _ := c.WithConcurrency(100).GetItems(items)
 	for _, s := range stories {
 		fmt.Println(s)
 	}

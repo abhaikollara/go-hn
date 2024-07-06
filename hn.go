@@ -12,12 +12,26 @@ const BaseUrlv0 = "https://hacker-news.firebaseio.com/v0"
 
 // Client represents a Hacker News API client.
 type Client struct {
-	baseURL string
+	baseURL     string
+	concurrency int
 }
 
 // New creates a new Client with the default base URL.
 func New() Client {
-	return Client{baseURL: BaseUrlv0}
+	return Client{baseURL: BaseUrlv0, concurrency: 20}
+}
+
+// SetConcurrency sets the concurrency level for the client.
+func (c *Client) SetConcurrency(n int) {
+	c.concurrency = n
+}
+
+// WithConcurrency returns a new Client with the specified concurrency level.
+func (c *Client) WithConcurrency(n int) *Client {
+	return &Client{
+		baseURL:     c.baseURL,
+		concurrency: n,
+	}
 }
 
 // Item represents a Hacker News item.
@@ -94,11 +108,11 @@ func (c *Client) GetItem(id int) (*Item, error) {
 }
 
 // GetItems fetches multiple items concurrently from Hacker News by their IDs.
-func (c *Client) GetItems(ids []int, batchSize int) ([]*Item, error) {
+func (c *Client) GetItems(ids []int) ([]*Item, error) {
 	var wg sync.WaitGroup
-	itemCh := make(chan *Item, batchSize)
-	errCh := make(chan error, batchSize)
-	sem := make(chan struct{}, batchSize)
+	itemCh := make(chan *Item, c.concurrency)
+	errCh := make(chan error, c.concurrency)
+	sem := make(chan struct{}, c.concurrency)
 
 	for _, id := range ids {
 		wg.Add(1)
